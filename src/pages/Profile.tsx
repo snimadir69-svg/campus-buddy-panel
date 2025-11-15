@@ -1,149 +1,193 @@
-import { useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import DashboardLayout from '@/components/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Download } from 'lucide-react';
-import QRCode from 'react-qr-code';
-import { toPng } from 'html-to-image';
-import { useToast } from '@/hooks/use-toast';
-import DashboardLayout from '@/components/DashboardLayout';
-
-const getLevelInfo = (level?: string) => {
-  switch (level) {
-    case 'beginner':
-      return { label: 'Boshlang\'ich', color: 'bg-green-500' };
-    case 'intermediate':
-      return { label: 'O\'rta', color: 'bg-yellow-500' };
-    case 'advanced':
-      return { label: 'Yuksak', color: 'bg-red-500' };
-    default:
-      return { label: '', color: '' };
-  }
-};
+import { Phone, Mail, User as UserIcon, Trophy, Coins, TrendingUp } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
 
 export default function Profile() {
-  const { user } = useAuth();
-  const qrRef = useRef<HTMLDivElement>(null);
-  const { toast } = useToast();
+  const { user, users } = useAuth();
 
-  const handleDownloadQR = async () => {
-    if (qrRef.current) {
-      try {
-        const dataUrl = await toPng(qrRef.current, { quality: 1 });
-        const link = document.createElement('a');
-        link.download = `qr-${user?.id}.png`;
-        link.href = dataUrl;
-        link.click();
-        toast({
-          title: "Muvaffaqiyatli!",
-          description: "QR kod yuklab olindi",
-        });
-      } catch (error) {
-        toast({
-          title: "Xato",
-          description: "QR kodni yuklab olishda xatolik",
-          variant: "destructive",
-        });
-      }
+  if (!user) {
+    return null;
+  }
+
+  const getLevelColor = (level: string) => {
+    switch (level) {
+      case 'beginner':
+        return 'bg-green-500';
+      case 'intermediate':
+        return 'bg-yellow-500';
+      case 'advanced':
+        return 'bg-red-500';
+      default:
+        return 'bg-gray-500';
     }
   };
 
-  if (!user) return null;
+  const getLevelText = (level: string) => {
+    switch (level) {
+      case 'beginner':
+        return 'Boshlang\'ich';
+      case 'intermediate':
+        return 'O\'rta';
+      case 'advanced':
+        return 'Yuksak';
+      default:
+        return level;
+    }
+  };
+
+  // Calculate student rankings
+  const studentUsers = users.filter(u => u.role === 'student');
+  const sortedStudents = [...studentUsers].sort((a, b) => (b.coins || 0) - (a.coins || 0));
+  const userRank = sortedStudents.findIndex(u => u.id === user.id) + 1;
+  const totalStudents = studentUsers.length;
 
   return (
     <DashboardLayout>
       <div className="space-y-6 animate-fade-in">
-        <h1 className="text-3xl font-bold">Mening Profilim</h1>
-
-        <div className="grid md:grid-cols-2 gap-6">
-          {/* Profile Info */}
+        <h1 className="text-3xl font-bold text-foreground">Profil</h1>
+        
+        <div className="grid gap-6 md:grid-cols-2">
           <Card>
             <CardHeader>
               <CardTitle>Shaxsiy ma'lumotlar</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="flex items-center gap-4">
+              <div className="flex items-center space-x-4">
                 <Avatar className="h-20 w-20">
-                  <AvatarImage src={user.photo} />
-                  <AvatarFallback className="bg-primary text-primary-foreground text-2xl">
+                  <AvatarImage src={user.photo} alt={user.surname} />
+                  <AvatarFallback className="text-lg">
                     {user.surname[0]}{user.lastname[0]}
                   </AvatarFallback>
                 </Avatar>
                 <div>
-                  <h3 className="text-xl font-semibold">{user.surname} {user.lastname}</h3>
-                  <p className="text-sm text-muted-foreground">@{user.username}</p>
+                  <h3 className="text-xl font-semibold text-foreground">
+                    {user.surname} {user.lastname}
+                  </h3>
+                  <p className="text-muted-foreground">@{user.username}</p>
                 </div>
               </div>
 
               <div className="space-y-3">
-                <div className="border-b pb-2">
-                  <p className="text-sm text-muted-foreground">UUID</p>
-                  <p className="font-mono text-xs break-all">{user.id}</p>
+                <div className="flex items-center space-x-3">
+                  <Phone className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-foreground">{user.phone_number}</span>
                 </div>
-
-                <div className="border-b pb-2">
-                  <p className="text-sm text-muted-foreground">Telefon raqam</p>
-                  <p className="font-medium">{user.phone_number}</p>
-                </div>
-
-                {user.tg_username && (
-                  <div className="border-b pb-2">
-                    <p className="text-sm text-muted-foreground">Telegram</p>
-                    <p className="font-medium">@{user.tg_username}</p>
-                  </div>
-                )}
-
-                {user.level && (
-                  <div className="border-b pb-2">
-                    <p className="text-sm text-muted-foreground">Daraja</p>
-                    <Badge className={`${getLevelInfo(user.level).color} text-white`}>
-                      {getLevelInfo(user.level).label}
-                    </Badge>
-                  </div>
-                )}
                 
-                {user.course && (
-                  <div className="border-b pb-2">
-                    <p className="text-sm text-muted-foreground">Kurs</p>
-                    <p className="font-medium">{user.course}</p>
+                {user.tg_username && (
+                  <div className="flex items-center space-x-3">
+                    <Mail className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-foreground">{user.tg_username}</span>
                   </div>
                 )}
 
-                {user.direction && (
-                  <div className="border-b pb-2">
-                    <p className="text-sm text-muted-foreground">Yo'nalish</p>
-                    <p className="font-medium">{user.direction}</p>
-                  </div>
+                {user.role === 'student' && (
+                  <>
+                    <div className="flex items-center space-x-3">
+                      <UserIcon className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-foreground">{user.course}</span>
+                    </div>
+                    <div className="flex items-center space-x-3">
+                      <span className="text-muted-foreground">Level:</span>
+                      <Badge className={getLevelColor(user.level || 'beginner')}>
+                        {getLevelText(user.level || 'beginner')}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center space-x-3">
+                      <span className="text-muted-foreground">Yo'nalish:</span>
+                      <span className="text-foreground">{user.direction}</span>
+                    </div>
+                  </>
                 )}
               </div>
             </CardContent>
           </Card>
 
-          {/* QR Code */}
-          <Card>
-            <CardHeader>
-              <CardTitle>QR Kod</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div 
-                ref={qrRef} 
-                className="bg-white p-6 rounded-lg inline-flex flex-col items-center gap-4"
-              >
-                <QRCode
-                  value={user.id}
-                  size={200}
-                  level="H"
-                />
-                <p className="text-sm font-mono text-gray-800">ID: {user.id}</p>
-              </div>
-              <Button onClick={handleDownloadQR} className="w-full">
-                <Download className="mr-2 h-4 w-4" />
-                QR kodni yuklab olish
-              </Button>
-            </CardContent>
-          </Card>
+          {user.role === 'student' && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Trophy className="h-5 w-5 text-yellow-500" />
+                  Statistika
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Coins className="h-5 w-5 text-yellow-500" />
+                      <span className="text-muted-foreground">Tangalar:</span>
+                    </div>
+                    <span className="text-2xl font-bold text-foreground">{user.coins || 0}</span>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <TrendingUp className="h-5 w-5 text-blue-500" />
+                      <span className="text-muted-foreground">O'rningiz:</span>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-2xl font-bold text-foreground">
+                        {userRank}-o'rin
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        {totalStudents} talabadan
+                      </div>
+                    </div>
+                  </div>
+                  <Progress value={(1 - (userRank - 1) / totalStudents) * 100} className="h-2" />
+                </div>
+
+                <div className="pt-4 border-t">
+                  <div className="text-sm text-muted-foreground mb-2">Top 3 talabalar:</div>
+                  <div className="space-y-2">
+                    {sortedStudents.slice(0, 3).map((student, index) => (
+                      <div key={student.id} className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className={`flex items-center justify-center w-6 h-6 rounded-full ${
+                            index === 0 ? 'bg-yellow-500' : 
+                            index === 1 ? 'bg-gray-400' : 
+                            'bg-orange-600'
+                          } text-white text-xs font-bold`}>
+                            {index + 1}
+                          </div>
+                          <span className="text-sm">
+                            {student.surname} {student.lastname}
+                          </span>
+                        </div>
+                        <span className="text-sm font-semibold">{student.coins || 0}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {user.role === 'admin' && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Qo'shimcha ma'lumotlar</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">UUID:</span>
+                    <span className="font-mono text-foreground">{user.id}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Rol:</span>
+                    <Badge variant="secondary">Admin</Badge>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
     </DashboardLayout>

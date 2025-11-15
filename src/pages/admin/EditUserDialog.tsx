@@ -28,6 +28,7 @@ const userSchema = z.object({
   direction: z.string().min(2).max(100),
   uuid: z.string().regex(/^ITC\d{3}$/, 'UUID ITC + 3 raqam formatida bo\'lishi kerak (masalan: ITC003)'),
   photo: z.string().optional(),
+  coins: z.number().min(0, 'Tangalar 0 dan kam bo\'lmasligi kerak').optional(),
 });
 
 type UserFormData = z.infer<typeof userSchema>;
@@ -58,6 +59,7 @@ export default function EditUserDialog({ user, open, onOpenChange, onSave }: Edi
         direction: user.direction || '',
         uuid: user.id,
         photo: user.photo || '',
+        coins: user.coins || 0,
       });
     }
   }, [user, form]);
@@ -186,6 +188,20 @@ export default function EditUserDialog({ user, open, onOpenChange, onSave }: Edi
             <div className="space-y-2">
               <Label htmlFor="edit-photo">Rasm URL</Label>
               <Input id="edit-photo" type="url" placeholder="https://..." {...form.register('photo')} />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-coins">Tangalar (Coins)</Label>
+              <Input 
+                id="edit-coins" 
+                type="number" 
+                min="0"
+                placeholder="0" 
+                {...form.register('coins', { valueAsNumber: true })} 
+              />
+              {form.formState.errors.coins && (
+                <p className="text-sm text-destructive">{form.formState.errors.coins.message}</p>
+              )}
             </div>
           </div>
 

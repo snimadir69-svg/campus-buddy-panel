@@ -13,6 +13,7 @@ export interface User {
   course?: string;
   direction?: string;
   photo?: string;
+  coins?: number;
 }
 
 interface AuthContextType {
@@ -44,6 +45,8 @@ const defaultUsers: Record<string, { password: string; user: User }> = {
       level: 'intermediate',
       course: 'Kurs 2',
       direction: 'Dasturiy injinering',
+      photo: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Aziz',
+      coins: 150,
     },
   },
   admin: {

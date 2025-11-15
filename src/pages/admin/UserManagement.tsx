@@ -114,6 +114,7 @@ export default function UserManagement() {
                   <TableHead>Kurs</TableHead>
                   <TableHead>Level</TableHead>
                   <TableHead>Yo'nalish</TableHead>
+                  <TableHead>Tangalar</TableHead>
                   <TableHead className="text-right">Amallar</TableHead>
                 </TableRow>
               </TableHeader>
@@ -132,6 +133,12 @@ export default function UserManagement() {
                       </Badge>
                     </TableCell>
                     <TableCell>{student.direction}</TableCell>
+                    <TableCell>
+                      <Badge variant="secondary" className="gap-1">
+                        <span className="text-yellow-500">⭐</span>
+                        {student.coins || 0}
+                      </Badge>
+                    </TableCell>
                     <TableCell className="text-right space-x-2">
                       <Button variant="ghost" size="icon" onClick={() => handleEdit(student)}>
                         <Pencil className="h-4 w-4" />
