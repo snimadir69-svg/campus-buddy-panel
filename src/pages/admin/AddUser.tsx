@@ -1,5 +1,7 @@
-import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
 import DashboardLayout from '@/components/DashboardLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,40 +19,55 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import QRScanner from '@/components/QRScanner';
 
+const userSchema = z.object({
+  surname: z.string().min(2, 'Ism kamida 2 ta belgidan iborat bo\'lishi kerak').max(50, 'Ism 50 ta belgidan oshmasligi kerak'),
+  lastname: z.string().min(2, 'Familya kamida 2 ta belgidan iborat bo\'lishi kerak').max(50, 'Familya 50 ta belgidan oshmasligi kerak'),
+  username: z.string().min(3, 'Username kamida 3 ta belgidan iborat bo\'lishi kerak').max(30, 'Username 30 ta belgidan oshmasligi kerak'),
+  password: z.string().min(6, 'Parol kamida 6 ta belgidan iborat bo\'lishi kerak').max(100),
+  phone_number: z.string().regex(/^\+998\d{9}$/, 'Telefon raqami +998XXXXXXXXX formatida bo\'lishi kerak'),
+  tg_username: z.string().max(50).optional(),
+  level: z.enum(['beginner', 'intermediate', 'advanced'], { required_error: 'Level tanlang' }),
+  course: z.string().min(1, 'Kurs tanlang'),
+  direction: z.string().min(2, 'Yo\'nalish kamida 2 ta belgidan iborat bo\'lishi kerak').max(100),
+  uuid: z.string().min(1, 'UUID majburiy (QR kod skanerlang)'),
+  photo: z.string().optional(),
+});
+
+type UserFormData = z.infer<typeof userSchema>;
+
 export default function AddUser() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const [formData, setFormData] = useState({
-    surname: '',
-    lastname: '',
-    username: '',
-    password: '',
-    phone_number: '',
-    tg_username: '',
-    level: '',
-    course: '',
-    direction: '',
-    uuid: '',
-    photo: '',
+  const form = useForm<UserFormData>({
+    resolver: zodResolver(userSchema),
+    defaultValues: {
+      surname: '',
+      lastname: '',
+      username: '',
+      password: '',
+      phone_number: '+998',
+      tg_username: '',
+      level: undefined,
+      course: '',
+      direction: '',
+      uuid: '',
+      photo: '',
+    },
   });
 
-  const handleInputChange = (field: string, value: string) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
-  };
-
   const handleQRScan = (decodedText: string) => {
-    setFormData((prev) => ({ ...prev, uuid: decodedText }));
+    form.setValue('uuid', decodedText);
     toast({
       title: 'QR kod muvaffaqiyatli skanerlandi',
       description: `UUID: ${decodedText}`,
     });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    // Here you would save the user data
+  const onSubmit = (data: UserFormData) => {
+    // Here you would save the user data to localStorage or database
+    console.log('User data:', data);
     toast({
       title: 'Foydalanuvchi qo\'shildi',
       description: 'Yangi foydalanuvchi muvaffaqiyatli qo\'shildi',
@@ -81,59 +98,61 @@ export default function AddUser() {
             <CardTitle>Foydalanuvchi ma'lumotlari</CardTitle>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="surname">Ism *</Label>
                   <Input
                     id="surname"
-                    value={formData.surname}
-                    onChange={(e) => handleInputChange('surname', e.target.value)}
-                    required
+                    {...form.register('surname')}
                   />
+                  {form.formState.errors.surname && (
+                    <p className="text-sm text-destructive">{form.formState.errors.surname.message}</p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="lastname">Familya *</Label>
                   <Input
                     id="lastname"
-                    value={formData.lastname}
-                    onChange={(e) => handleInputChange('lastname', e.target.value)}
-                    required
+                    {...form.register('lastname')}
                   />
+                  {form.formState.errors.lastname && (
+                    <p className="text-sm text-destructive">{form.formState.errors.lastname.message}</p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="username">Username *</Label>
                   <Input
                     id="username"
-                    value={formData.username}
-                    onChange={(e) => handleInputChange('username', e.target.value)}
-                    required
+                    {...form.register('username')}
                   />
+                  {form.formState.errors.username && (
+                    <p className="text-sm text-destructive">{form.formState.errors.username.message}</p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="password">Parol *</Label>
                   <Input
                     id="password"
-                    type="password"
-                    value={formData.password}
-                    onChange={(e) => handleInputChange('password', e.target.value)}
-                    required
                   />
+                  {form.formState.errors.password && (
+                    <p className="text-sm text-destructive">{form.formState.errors.password.message}</p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="phone_number">Telefon raqam *</Label>
+                  <Label htmlFor="phone_number">Telefon raqami *</Label>
                   <Input
                     id="phone_number"
-                    type="tel"
                     placeholder="+998901234567"
-                    value={formData.phone_number}
-                    onChange={(e) => handleInputChange('phone_number', e.target.value)}
-                    required
+                    {...form.register('phone_number')}
                   />
+                  {form.formState.errors.phone_number && (
+                    <p className="text-sm text-destructive">{form.formState.errors.phone_number.message}</p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -141,14 +160,19 @@ export default function AddUser() {
                   <Input
                     id="tg_username"
                     placeholder="@username"
-                    value={formData.tg_username}
-                    onChange={(e) => handleInputChange('tg_username', e.target.value)}
+                    {...form.register('tg_username')}
                   />
+                  {form.formState.errors.tg_username && (
+                    <p className="text-sm text-destructive">{form.formState.errors.tg_username.message}</p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="level">Level *</Label>
-                  <Select value={formData.level} onValueChange={(value) => handleInputChange('level', value)}>
+                  <Select
+                    value={form.watch('level')}
+                    onValueChange={(value) => form.setValue('level', value as 'beginner' | 'intermediate' | 'advanced')}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Level tanlang" />
                     </SelectTrigger>
@@ -158,11 +182,17 @@ export default function AddUser() {
                       <SelectItem value="advanced">Yuksak (Qizil)</SelectItem>
                     </SelectContent>
                   </Select>
+                  {form.formState.errors.level && (
+                    <p className="text-sm text-destructive">{form.formState.errors.level.message}</p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="course">Kurs *</Label>
-                  <Select value={formData.course} onValueChange={(value) => handleInputChange('course', value)}>
+                  <Select
+                    value={form.watch('course')}
+                    onValueChange={(value) => form.setValue('course', value)}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Kurs tanlang" />
                     </SelectTrigger>
@@ -174,26 +204,21 @@ export default function AddUser() {
                       <SelectItem value="Kurs 5">Kurs 5</SelectItem>
                     </SelectContent>
                   </Select>
+                  {form.formState.errors.course && (
+                    <p className="text-sm text-destructive">{form.formState.errors.course.message}</p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="direction">Yo'nalish *</Label>
                   <Input
                     id="direction"
-                    value={formData.direction}
-                    onChange={(e) => handleInputChange('direction', e.target.value)}
-                    required
+                    placeholder="Masalan: Dasturiy injinering"
+                    {...form.register('direction')}
                   />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="photo">Rasm URL</Label>
-                  <Input
-                    id="photo"
-                    type="url"
-                    value={formData.photo}
-                    onChange={(e) => handleInputChange('photo', e.target.value)}
-                  />
+                  {form.formState.errors.direction && (
+                    <p className="text-sm text-destructive">{form.formState.errors.direction.message}</p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -201,13 +226,28 @@ export default function AddUser() {
                   <div className="flex gap-2">
                     <Input
                       id="uuid"
-                      value={formData.uuid}
-                      onChange={(e) => handleInputChange('uuid', e.target.value)}
-                      required
+                      {...form.register('uuid')}
+                      placeholder="QR kod skanerlang"
                       readOnly
                     />
                     <QRScanner onScanSuccess={handleQRScan} />
                   </div>
+                  {form.formState.errors.uuid && (
+                    <p className="text-sm text-destructive">{form.formState.errors.uuid.message}</p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="photo">Rasm URL (majburiy emas)</Label>
+                  <Input
+                    id="photo"
+                    type="url"
+                    placeholder="https://..."
+                    {...form.register('photo')}
+                  />
+                  {form.formState.errors.photo && (
+                    <p className="text-sm text-destructive">{form.formState.errors.photo.message}</p>
+                  )}
                 </div>
               </div>
 
