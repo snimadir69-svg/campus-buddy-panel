@@ -30,8 +30,16 @@ const App = () => (
           <Sonner />
           <BrowserRouter>
             <Routes>
-              <Route path="/" element={<Index />} />
+              <Route path="/" element={<Login />} />
               <Route path="/login" element={<Login />} />
+              <Route 
+                path="/dashboard" 
+                element={
+                  <ProtectedRoute>
+                    <Index />
+                  </ProtectedRoute>
+                } 
+              />
               <Route 
                 path="/dashboard/profile" 
                 element={
@@ -72,7 +80,6 @@ const App = () => (
                   </ProtectedRoute>
                 } 
               />
-              <Route path="/dashboard" element={<Navigate to="/dashboard/profile" />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
