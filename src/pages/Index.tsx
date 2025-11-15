@@ -1,40 +1,109 @@
-import { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { Button } from '@/components/ui/button';
-import { GraduationCap } from 'lucide-react';
+import DashboardLayout from '@/components/DashboardLayout';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Users, BookOpen, Award, TrendingUp } from 'lucide-react';
 
 const Index = () => {
-  const { user } = useAuth();
-  const navigate = useNavigate();
+  const { user, users } = useAuth();
 
-  useEffect(() => {
-    if (user) {
-      navigate('/dashboard/profile');
-    }
-  }, [user, navigate]);
+  if (!user) return null;
+
+  const studentCount = users.filter(u => u.role === 'student').length;
+  const totalCoins = users.reduce((sum, u) => sum + (u.coins || 0), 0);
+  const avgCoins = studentCount > 0 ? Math.round(totalCoins / studentCount) : 0;
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 via-background to-accent/10">
-      <div className="text-center space-y-6 p-8 animate-fade-in">
-        <div className="mx-auto w-20 h-20 bg-primary rounded-full flex items-center justify-center mb-4">
-          <GraduationCap className="h-10 w-10 text-primary-foreground" />
+    <DashboardLayout>
+      <div className="space-y-6 animate-fade-in">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">
+            Xush kelibsiz, {user.surname} {user.lastname}!
+          </h1>
+          <p className="text-muted-foreground mt-2">
+            Bu yerda umumiy ma'lumotlar va statistikalarni ko'rishingiz mumkin
+          </p>
         </div>
-        <h1 className="text-5xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-          Talaba Boshqaruv Tizimi
-        </h1>
-        <p className="text-xl text-muted-foreground max-w-md mx-auto">
-          O'z profilingiz va statistikalaringizni boshqaring
-        </p>
-        <Button 
-          size="lg" 
-          onClick={() => navigate('/login')}
-          className="animate-scale-in"
-        >
-          Tizimga kirish
-        </Button>
+
+        {user.role === 'admin' && (
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Jami talabalar</CardTitle>
+                <Users className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{studentCount}</div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Jami tangalar</CardTitle>
+                <Award className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{totalCoins}</div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">O'rtacha tangalar</CardTitle>
+                <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{avgCoins}</div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Aktiv kurslar</CardTitle>
+                <BookOpen className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">5</div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {user.role === 'student' && (
+          <div className="grid gap-4 md:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle>Sizning ma'lumotlaringiz</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Kurs:</span>
+                  <span className="font-medium">{user.course}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Yo'nalish:</span>
+                  <span className="font-medium">{user.direction}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Tangalar:</span>
+                  <span className="font-medium text-yellow-500">{user.coins || 0}</span>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Tez havolalar</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground text-sm">
+                  Profilingizni ko'rish va statistikalaringizni tekshirish uchun chap tomondagi menyudan foydalaning.
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </div>
-    </div>
+    </DashboardLayout>
   );
 };
 
