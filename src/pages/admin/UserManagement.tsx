@@ -12,26 +12,52 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { UserPlus, Pencil, Trash2 } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth, User } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
+import EditUserDialog from './EditUserDialog';
 
 export default function UserManagement() {
   const navigate = useNavigate();
-  const { user } = useAuth();
-  
-  // Mock data - in real app this would come from database
-  const [users] = useState([
-    {
-      id: 'e4c9b8f1-5a2d-4e3c-9b1f-6d8a7c5e4b3a',
-      username: 'student',
-      surname: 'Karimov',
-      lastname: 'Aziz',
-      phone_number: '+998901234567',
-      level: 'intermediate',
-      course: 'Kurs 2',
-      direction: 'Dasturiy injinering',
+  const { user, users, updateUser, deleteUser } = useAuth();
+  const { toast } = useToast();
+  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
+
+  const handleEdit = (userToEdit: User) => {
+    setEditingUser(userToEdit);
+  };
+
+  const handleSave = (id: string, data: Partial<User>) => {
+    updateUser(id, data);
+    toast({
+      title: 'Saqlandi',
+      description: 'Foydalanuvchi ma\'lumotlari yangilandi',
+    });
+  };
+
+  const handleDelete = () => {
+    if (deletingUserId) {
+      deleteUser(deletingUserId);
+      toast({
+        title: 'O\'chirildi',
+        description: 'Foydalanuvchi o\'chirildi',
+      });
+      setDeletingUserId(null);
     }
-  ]);
+  };
+  
+  const studentUsers = users.filter(u => u.role === 'student');
 
   const getLevelColor = (level: string) => {
     switch (level) {
@@ -92,7 +118,7 @@ export default function UserManagement() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {users.map((student) => (
+                {studentUsers.map((student) => (
                   <TableRow key={student.id}>
                     <TableCell className="font-medium">
                       {student.surname} {student.lastname}
@@ -101,16 +127,20 @@ export default function UserManagement() {
                     <TableCell>{student.phone_number}</TableCell>
                     <TableCell>{student.course}</TableCell>
                     <TableCell>
-                      <Badge className={getLevelColor(student.level)}>
-                        {getLevelText(student.level)}
+                      <Badge className={getLevelColor(student.level || 'beginner')}>
+                        {getLevelText(student.level || 'beginner')}
                       </Badge>
                     </TableCell>
                     <TableCell>{student.direction}</TableCell>
                     <TableCell className="text-right space-x-2">
-                      <Button variant="ghost" size="icon">
+                      <Button variant="ghost" size="icon" onClick={() => handleEdit(student)}>
                         <Pencil className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="icon">
+                      <Button 
+                        variant="ghost" 
+                        size="icon"
+                        onClick={() => setDeletingUserId(student.id)}
+                      >
                         <Trash2 className="h-4 w-4 text-destructive" />
                       </Button>
                     </TableCell>
@@ -121,6 +151,30 @@ export default function UserManagement() {
           </CardContent>
         </Card>
       </div>
+
+      <EditUserDialog
+        user={editingUser}
+        open={!!editingUser}
+        onOpenChange={(open) => !open && setEditingUser(null)}
+        onSave={handleSave}
+      />
+
+      <AlertDialog open={!!deletingUserId} onOpenChange={(open) => !open && setDeletingUserId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Foydalanuvchini o'chirish</AlertDialogTitle>
+            <AlertDialogDescription>
+              Bu amalni bekor qilib bo'lmaydi. Foydalanuvchi butunlay o'chiriladi.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Bekor qilish</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              O'chirish
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </DashboardLayout>
   );
 }

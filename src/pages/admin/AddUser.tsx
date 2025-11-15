@@ -15,7 +15,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { ArrowLeft } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth, User } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import QRScanner from '@/components/QRScanner';
 
@@ -29,7 +29,7 @@ const userSchema = z.object({
   level: z.enum(['beginner', 'intermediate', 'advanced'], { required_error: 'Level tanlang' }),
   course: z.string().min(1, 'Kurs tanlang'),
   direction: z.string().min(2, 'Yo\'nalish kamida 2 ta belgidan iborat bo\'lishi kerak').max(100),
-  uuid: z.string().min(1, 'UUID majburiy (QR kod skanerlang)'),
+  uuid: z.string().regex(/^ITC\d{3}$/, 'UUID ITC + 3 raqam formatida bo\'lishi kerak (masalan: ITC003)'),
   photo: z.string().optional(),
 });
 
@@ -37,7 +37,7 @@ type UserFormData = z.infer<typeof userSchema>;
 
 export default function AddUser() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, addUser } = useAuth();
   const { toast } = useToast();
 
   const form = useForm<UserFormData>({
@@ -66,8 +66,22 @@ export default function AddUser() {
   };
 
   const onSubmit = (data: UserFormData) => {
-    // Here you would save the user data to localStorage or database
-    console.log('User data:', data);
+    const newUser: User = {
+      id: data.uuid,
+      username: data.username,
+      password: data.password,
+      role: 'student',
+      surname: data.surname,
+      lastname: data.lastname,
+      phone_number: data.phone_number,
+      tg_username: data.tg_username,
+      level: data.level,
+      course: data.course,
+      direction: data.direction,
+      photo: data.photo,
+    };
+    
+    addUser(newUser);
     toast({
       title: 'Foydalanuvchi qo\'shildi',
       description: 'Yangi foydalanuvchi muvaffaqiyatli qo\'shildi',
