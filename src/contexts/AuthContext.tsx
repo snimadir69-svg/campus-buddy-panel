@@ -17,9 +17,13 @@ export interface User {
 
 interface AuthContextType {
   user: User | null;
+  users: User[];
   login: (username: string, password: string) => boolean;
   logout: () => void;
   updateProfile: (data: Partial<User>) => void;
+  addUser: (user: User) => void;
+  updateUser: (id: string, data: Partial<User>) => void;
+  deleteUser: (id: string) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -58,11 +62,22 @@ const defaultUsers: Record<string, { password: string; user: User }> = {
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [users, setUsers] = useState<User[]>([]);
 
   useEffect(() => {
     const storedUser = localStorage.getItem('currentUser');
     if (storedUser) {
       setUser(JSON.parse(storedUser));
+    }
+    
+    const storedUsers = localStorage.getItem('allUsers');
+    if (storedUsers) {
+      setUsers(JSON.parse(storedUsers));
+    } else {
+      // Initialize with default users
+      const initialUsers = Object.values(defaultUsers).map(u => u.user);
+      setUsers(initialUsers);
+      localStorage.setItem('allUsers', JSON.stringify(initialUsers));
     }
   }, []);
 
@@ -86,11 +101,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const updatedUser = { ...user, ...data };
       setUser(updatedUser);
       localStorage.setItem('currentUser', JSON.stringify(updatedUser));
+      
+      // Update in users list
+      const updatedUsers = users.map(u => u.id === user.id ? updatedUser : u);
+      setUsers(updatedUsers);
+      localStorage.setItem('allUsers', JSON.stringify(updatedUsers));
     }
   };
 
+  const addUser = (newUser: User) => {
+    const updatedUsers = [...users, newUser];
+    setUsers(updatedUsers);
+    localStorage.setItem('allUsers', JSON.stringify(updatedUsers));
+  };
+
+  const updateUser = (id: string, data: Partial<User>) => {
+    const updatedUsers = users.map(u => u.id === id ? { ...u, ...data } : u);
+    setUsers(updatedUsers);
+    localStorage.setItem('allUsers', JSON.stringify(updatedUsers));
+    
+    // If updating current user
+    if (user?.id === id) {
+      const updatedUser = { ...user, ...data };
+      setUser(updatedUser);
+      localStorage.setItem('currentUser', JSON.stringify(updatedUser));
+    }
+  };
+
+  const deleteUser = (id: string) => {
+    const updatedUsers = users.filter(u => u.id !== id);
+    setUsers(updatedUsers);
+    localStorage.setItem('allUsers', JSON.stringify(updatedUsers));
+  };
+
   return (
-    <AuthContext.Provider value={{ user, login, logout, updateProfile }}>
+    <AuthContext.Provider value={{ user, users, login, logout, updateProfile, addUser, updateUser, deleteUser }}>
       {children}
     </AuthContext.Provider>
   );
