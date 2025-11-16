@@ -53,7 +53,7 @@ export default function Login() {
       </div>
 
       <div className="login-card">
-        <div className="logo-placeholder">UBS</div>
+        <img className="logo-placeholder" src="/logo.png" alt="Logo" />
         
         <div className="login-header">
           <h3>University of Business and Science<br />Tashkent branch</h3>
