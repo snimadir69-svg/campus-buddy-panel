@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -15,30 +16,33 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { ArrowLeft } from 'lucide-react';
-import { useAuth, User } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import QRScanner from '@/components/QRScanner';
+import { authFetch } from '@/lib/authFetch';
+import { API_ENDPOINTS } from '@/config/api';
 
 const userSchema = z.object({
   first_name: z.string().min(2, 'Ism kamida 2 ta belgidan iborat bo\'lishi kerak').max(50, 'Ism 50 ta belgidan oshmasligi kerak'),
   last_name: z.string().min(2, 'Familya kamida 2 ta belgidan iborat bo\'lishi kerak').max(50, 'Familya 50 ta belgidan oshmasligi kerak'),
   username: z.string().min(3, 'Username kamida 3 ta belgidan iborat bo\'lishi kerak').max(30, 'Username 30 ta belgidan oshmasligi kerak'),
   password: z.string().min(6, 'Parol kamida 6 ta belgidan iborat bo\'lishi kerak').max(100),
-  phone_number: z.string().regex(/^\+998\d{9}$/, 'Telefon raqami +998XXXXXXXXX formatida bo\'lishi kerak'),
+  phone_number: z.string().min(1, 'Telefon raqam kiriting'),
   tg_username: z.string().max(50).optional(),
   level: z.enum(['beginner', 'intermediate', 'advanced'], { required_error: 'Level tanlang' }),
   course: z.string().min(1, 'Kurs tanlang'),
   direction: z.string().min(2, 'Yo\'nalish kamida 2 ta belgidan iborat bo\'lishi kerak').max(100),
   uuid: z.string().regex(/^ITC\d{3}$/, 'UUID ITC + 3 raqam formatida bo\'lishi kerak (masalan: ITC003)'),
-  photo: z.string().optional(),
 });
 
 type UserFormData = z.infer<typeof userSchema>;
 
 export default function AddUser() {
   const navigate = useNavigate();
-  const { user, addUser } = useAuth();
+  const { user } = useAuth();
   const { toast } = useToast();
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<UserFormData>({
     resolver: zodResolver(userSchema),
@@ -47,13 +51,12 @@ export default function AddUser() {
       last_name: '',
       username: '',
       password: '',
-      phone_number: '+998',
+      phone_number: '',
       tg_username: '',
       level: undefined,
       course: '',
       direction: '',
       uuid: '',
-      photo: '',
     },
   });
 
@@ -65,28 +68,52 @@ export default function AddUser() {
     });
   };
 
-  const onSubmit = (data: UserFormData) => {
-    const newUser: User = {
-      id: data.uuid,
-      username: data.username,
-      password: data.password,
-      role: 'student',
-      first_name: data.first_name,
-      last_name: data.last_name,
-      phone_number: data.phone_number,
-      tg_username: data.tg_username,
-      level: data.level,
-      course: data.course,
-      direction: data.direction,
-      photo: data.photo,
-    };
+  const onSubmit = async (data: UserFormData) => {
+    if (isSubmitting) return;
     
-    addUser(newUser);
-    toast({
-      title: 'Foydalanuvchi qo\'shildi',
-      description: 'Yangi foydalanuvchi muvaffaqiyatli qo\'shildi',
-    });
-    navigate('/dashboard/admin/users');
+    setIsSubmitting(true);
+    try {
+      const formData = new FormData();
+      formData.append('username', data.username);
+      formData.append('surname', data.first_name);
+      formData.append('lastname', data.last_name);
+      formData.append('uuid', data.uuid);
+      formData.append('phone_number', data.phone_number);
+      formData.append('tg_username', data.tg_username || '');
+      formData.append('level', data.level);
+      formData.append('course', data.course);
+      formData.append('direction', data.direction);
+      formData.append('password', data.password);
+      
+      if (photoFile) {
+        formData.append('photo', photoFile);
+      }
+
+      const response = await authFetch(API_ENDPOINTS.USERS_LIST, {
+        method: 'POST',
+        headers: {},
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Foydalanuvchi qo\'shishda xatolik');
+      }
+
+      toast({
+        title: 'Muvaffaqiyatli',
+        description: 'Yangi foydalanuvchi qo\'shildi',
+      });
+      navigate('/dashboard/admin/users');
+    } catch (error) {
+      toast({
+        title: 'Xato',
+        description: error instanceof Error ? error.message : 'Foydalanuvchi qo\'shishda xatolik',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (user?.role !== 'admin') {
@@ -252,15 +279,22 @@ export default function AddUser() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="photo">Rasm URL (majburiy emas)</Label>
+                  <Label htmlFor="photo">Foydalanuvchi rasmi</Label>
                   <Input
                     id="photo"
-                    type="url"
-                    placeholder="https://..."
-                    {...form.register('photo')}
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        setPhotoFile(file);
+                      }
+                    }}
                   />
-                  {form.formState.errors.photo && (
-                    <p className="text-sm text-destructive">{form.formState.errors.photo.message}</p>
+                  {photoFile && (
+                    <p className="text-sm text-muted-foreground">
+                      Tanlangan: {photoFile.name}
+                    </p>
                   )}
                 </div>
               </div>
@@ -273,8 +307,8 @@ export default function AddUser() {
                 >
                   Bekor qilish
                 </Button>
-                <Button type="submit">
-                  Saqlash
+                <Button type="submit" disabled={isSubmitting}>
+                  {isSubmitting ? 'Saqlanmoqda...' : 'Saqlash'}
                 </Button>
               </div>
             </form>
