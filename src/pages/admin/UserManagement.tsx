@@ -24,11 +24,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { UserPlus, Pencil, Trash2, ChevronLeft, ChevronRight, Eye } from 'lucide-react';
+import { UserPlus, Pencil, Trash2, ChevronLeft, ChevronRight, Eye, KeyRound, Lock, LockOpen } from 'lucide-react';
 import { useAuth, User } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import EditUserDialog from './EditUserDialog';
 import ViewUserDialog from './ViewUserDialog';
+import ChangePasswordDialog from './ChangePasswordDialog';
 
 interface UsersResponse {
   count: number;
@@ -44,6 +45,7 @@ export default function UserManagement() {
   const [users, setUsers] = useState<User[]>([]);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [viewingUser, setViewingUser] = useState<User | null>(null);
+  const [changingPasswordUser, setChangingPasswordUser] = useState<User | null>(null);
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -114,6 +116,34 @@ export default function UserManagement() {
     }
   };
 
+  const handleToggleActive = async (userId: string, currentStatus: boolean) => {
+    try {
+      const response = await authFetch(`/users/users/${userId}/`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          is_active: !currentStatus,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Holatni o\'zgartirishda xatolik');
+      }
+
+      setUsers(users.map(u => u.id === userId ? { ...u, is_active: !currentStatus } : u));
+      toast({
+        title: 'Muvaffaqiyatli',
+        description: !currentStatus ? 'Foydalanuvchi faollashtirildi' : 'Foydalanuvchi bloklandi',
+      });
+      fetchUsers(currentPage);
+    } catch (error) {
+      toast({
+        title: 'Xato',
+        description: error instanceof Error ? error.message : 'Holatni o\'zgartirishda xatolik',
+        variant: 'destructive',
+      });
+    }
+  };
+
   const getLevelColor = (level?: string) => {
     switch (level) {
       case 'beginner':
@@ -176,6 +206,7 @@ export default function UserManagement() {
                       <TableHead>Level</TableHead>
                       <TableHead>Yo'nalish</TableHead>
                       <TableHead>Tangalar</TableHead>
+                      <TableHead>Holat</TableHead>
                       <TableHead className="text-right">Amallar</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -200,9 +231,31 @@ export default function UserManagement() {
                             {student.coins || 0}
                           </Badge>
                         </TableCell>
+                        <TableCell>
+                          <Button
+                            variant={student.is_active ? 'default' : 'destructive'}
+                            size="sm"
+                            onClick={() => handleToggleActive(student.id, student.is_active || false)}
+                          >
+                            {student.is_active ? (
+                              <>
+                                <LockOpen className="h-3 w-3 mr-1" />
+                                Faol
+                              </>
+                            ) : (
+                              <>
+                                <Lock className="h-3 w-3 mr-1" />
+                                Bloklangan
+                              </>
+                            )}
+                          </Button>
+                        </TableCell>
                         <TableCell className="text-right space-x-2">
                           <Button variant="ghost" size="icon" onClick={() => setViewingUser(student)}>
                             <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" onClick={() => setChangingPasswordUser(student)}>
+                            <KeyRound className="h-4 w-4" />
                           </Button>
                           <Button variant="ghost" size="icon" onClick={() => handleEdit(student)}>
                             <Pencil className="h-4 w-4" />
@@ -256,6 +309,13 @@ export default function UserManagement() {
         user={viewingUser}
         open={!!viewingUser}
         onOpenChange={(open) => !open && setViewingUser(null)}
+      />
+
+      <ChangePasswordDialog
+        userId={changingPasswordUser?.id || ''}
+        userName={changingPasswordUser ? `${changingPasswordUser.first_name} ${changingPasswordUser.last_name}` : ''}
+        open={!!changingPasswordUser}
+        onOpenChange={(open) => !open && setChangingPasswordUser(null)}
       />
 
       <EditUserDialog

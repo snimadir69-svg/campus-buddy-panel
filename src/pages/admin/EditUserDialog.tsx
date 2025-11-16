@@ -14,20 +14,18 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { User } from '@/contexts/AuthContext';
-import QRScanner from '@/components/QRScanner';
+import { useToast } from '@/hooks/use-toast';
+import { authFetch } from '@/lib/authFetch';
 
 const userSchema = z.object({
   first_name: z.string().min(2, 'Ism kamida 2 ta belgidan iborat bo\'lishi kerak').max(50),
   last_name: z.string().min(2, 'Familya kamida 2 ta belgidan iborat bo\'lishi kerak').max(50),
   username: z.string().min(3, 'Username kamida 3 ta belgidan iborat bo\'lishi kerak').max(30),
-  password: z.string().min(6, 'Parol kamida 6 ta belgidan iborat bo\'lishi kerak').max(100),
-  phone_number: z.string().regex(/^\+998\d{9}$/, 'Telefon raqami +998XXXXXXXXX formatida bo\'lishi kerak'),
+  phone_number: z.string().min(1, 'Telefon raqam kiriting'),
   tg_username: z.string().max(50).optional(),
   level: z.enum(['beginner', 'intermediate', 'advanced']),
   course: z.string().min(1),
   direction: z.string().min(2).max(100),
-  uuid: z.string().regex(/^ITC\d{3}$/, 'UUID ITC + 3 raqam formatida bo\'lishi kerak (masalan: ITC003)'),
-  photo: z.string().optional(),
   coins: z.number().min(0, 'Tangalar 0 dan kam bo\'lmasligi kerak').optional(),
 });
 
@@ -41,6 +39,10 @@ interface EditUserDialogProps {
 }
 
 export default function EditUserDialog({ user, open, onOpenChange, onSave }: EditUserDialogProps) {
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { toast } = useToast();
+  
   const form = useForm<UserFormData>({
     resolver: zodResolver(userSchema),
   });
@@ -51,27 +53,64 @@ export default function EditUserDialog({ user, open, onOpenChange, onSave }: Edi
         first_name: user.first_name,
         last_name: user.last_name,
         username: user.username,
-        password: user.password,
         phone_number: user.phone_number,
         tg_username: user.tg_username || '',
         level: (user.level || 'beginner') as 'beginner' | 'intermediate' | 'advanced',
         course: user.course || '',
         direction: user.direction || '',
-        uuid: user.id,
-        photo: user.photo || '',
         coins: user.coins || 0,
       });
+      setPhotoFile(null);
     }
   }, [user, form]);
 
-  const handleQRScan = (decodedText: string) => {
-    form.setValue('uuid', decodedText);
-  };
+  const onSubmit = async (data: UserFormData) => {
+    if (!user || isSubmitting) return;
+    
+    setIsSubmitting(true);
+    try {
+      const formData = new FormData();
+      formData.append('surname', data.first_name);
+      formData.append('lastname', data.last_name);
+      formData.append('username', data.username);
+      formData.append('phone_number', data.phone_number);
+      formData.append('tg_username', data.tg_username || '');
+      formData.append('level', data.level);
+      formData.append('course', data.course);
+      formData.append('direction', data.direction);
+      
+      if (photoFile) {
+        formData.append('photo', photoFile);
+      }
 
-  const onSubmit = (data: UserFormData) => {
-    if (user) {
-      onSave(user.id, data);
+      const response = await authFetch(`/users/users/${user.id}/`, {
+        method: 'PATCH',
+        headers: {},
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Foydalanuvchini yangilashda xatolik');
+      }
+
+      const updatedUser = await response.json();
+      onSave(user.id, updatedUser);
+      
+      toast({
+        title: 'Muvaffaqiyatli',
+        description: 'Foydalanuvchi ma\'lumotlari yangilandi',
+      });
+      
       onOpenChange(false);
+    } catch (error) {
+      toast({
+        title: 'Xato',
+        description: error instanceof Error ? error.message : 'Foydalanuvchini yangilashda xatolik',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -106,14 +145,6 @@ export default function EditUserDialog({ user, open, onOpenChange, onSave }: Edi
               <Input id="edit-username" {...form.register('username')} />
               {form.formState.errors.username && (
                 <p className="text-sm text-destructive">{form.formState.errors.username.message}</p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="edit-password">Parol *</Label>
-              <Input id="edit-password" type="password" {...form.register('password')} />
-              {form.formState.errors.password && (
-                <p className="text-sm text-destructive">{form.formState.errors.password.message}</p>
               )}
             </div>
 
@@ -175,21 +206,27 @@ export default function EditUserDialog({ user, open, onOpenChange, onSave }: Edi
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="edit-uuid">UUID (ITC + 3 raqam) *</Label>
-              <div className="flex gap-2">
-                <Input id="edit-uuid" {...form.register('uuid')} placeholder="ITC003" readOnly />
-                <QRScanner onScanSuccess={handleQRScan} />
-              </div>
-              {form.formState.errors.uuid && (
-                <p className="text-sm text-destructive">{form.formState.errors.uuid.message}</p>
+              <Label htmlFor="edit-photo">Foydalanuvchi rasmi</Label>
+              <Input
+                id="edit-photo"
+                type="file"
+                accept="image/*"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    setPhotoFile(file);
+                  }
+                }}
+              />
+              {photoFile && (
+                <p className="text-sm text-muted-foreground">
+                  Tanlangan: {photoFile.name}
+                </p>
               )}
+            </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="edit-photo">Rasm URL</Label>
-              <Input id="edit-photo" type="url" placeholder="https://..." {...form.register('photo')} />
-            </div>
-
             <div className="space-y-2">
               <Label htmlFor="edit-coins">Tangalar (Coins)</Label>
               <Input 
@@ -206,10 +243,12 @@ export default function EditUserDialog({ user, open, onOpenChange, onSave }: Edi
           </div>
 
           <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
               Bekor qilish
             </Button>
-            <Button type="submit">Saqlash</Button>
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? 'Saqlanmoqda...' : 'Saqlash'}
+            </Button>
           </div>
         </form>
       </DialogContent>
