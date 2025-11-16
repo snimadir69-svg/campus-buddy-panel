@@ -24,10 +24,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { UserPlus, Pencil, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { UserPlus, Pencil, Trash2, ChevronLeft, ChevronRight, Eye } from 'lucide-react';
 import { useAuth, User } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import EditUserDialog from './EditUserDialog';
+import ViewUserDialog from './ViewUserDialog';
 
 interface UsersResponse {
   count: number;
@@ -42,6 +43,7 @@ export default function UserManagement() {
   const { toast } = useToast();
   const [users, setUsers] = useState<User[]>([]);
   const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [viewingUser, setViewingUser] = useState<User | null>(null);
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -199,6 +201,9 @@ export default function UserManagement() {
                           </Badge>
                         </TableCell>
                         <TableCell className="text-right space-x-2">
+                          <Button variant="ghost" size="icon" onClick={() => setViewingUser(student)}>
+                            <Eye className="h-4 w-4" />
+                          </Button>
                           <Button variant="ghost" size="icon" onClick={() => handleEdit(student)}>
                             <Pencil className="h-4 w-4" />
                           </Button>
@@ -246,6 +251,12 @@ export default function UserManagement() {
           </CardContent>
         </Card>
       </div>
+
+      <ViewUserDialog
+        user={viewingUser}
+        open={!!viewingUser}
+        onOpenChange={(open) => !open && setViewingUser(null)}
+      />
 
       <EditUserDialog
         user={editingUser}

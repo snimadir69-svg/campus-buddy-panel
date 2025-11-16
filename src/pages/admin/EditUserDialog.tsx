@@ -54,7 +54,7 @@ export default function EditUserDialog({ user, open, onOpenChange, onSave }: Edi
         password: user.password,
         phone_number: user.phone_number,
         tg_username: user.tg_username || '',
-        level: user.level || 'beginner',
+        level: (user.level || 'beginner') as 'beginner' | 'intermediate' | 'advanced',
         course: user.course || '',
         direction: user.direction || '',
         uuid: user.id,
