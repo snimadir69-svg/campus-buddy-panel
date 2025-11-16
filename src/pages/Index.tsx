@@ -1,16 +1,22 @@
 import { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 
 const Index = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
-    if (user) {
-      navigate('/dashboard/profile');
+    // Only redirect if we're exactly on /dashboard
+    if (user && location.pathname === '/dashboard') {
+      if (user.role === 'admin') {
+        navigate('/dashboard/admin/users', { replace: true });
+      } else {
+        navigate('/dashboard/profile', { replace: true });
+      }
     }
-  }, [user, navigate]);
+  }, [user, navigate, location.pathname]);
 
   return null;
 };
