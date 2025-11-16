@@ -50,11 +50,11 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                 <Avatar className="h-12 w-12">
                   <AvatarImage src={user.photo} />
                   <AvatarFallback className="bg-primary text-primary-foreground">
-                    {user.surname[0]}{user.lastname[0]}
+                    {(user.first_name?.[0] || '') + (user.last_name?.[0] || '')}
                   </AvatarFallback>
                 </Avatar>
                 <div>
-                  <p className="font-semibold text-sidebar-foreground">{user.surname}</p>
+                  <p className="font-semibold text-sidebar-foreground">{user.first_name || ''}</p>
                   <p className="text-sm text-sidebar-foreground/70">{user.role === 'student' ? 'Talaba' : 'Admin'}</p>
                 </div>
               </div>

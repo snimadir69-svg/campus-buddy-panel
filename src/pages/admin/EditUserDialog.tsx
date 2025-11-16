@@ -17,8 +17,8 @@ import { User } from '@/contexts/AuthContext';
 import QRScanner from '@/components/QRScanner';
 
 const userSchema = z.object({
-  surname: z.string().min(2, 'Ism kamida 2 ta belgidan iborat bo\'lishi kerak').max(50),
-  lastname: z.string().min(2, 'Familya kamida 2 ta belgidan iborat bo\'lishi kerak').max(50),
+  first_name: z.string().min(2, 'Ism kamida 2 ta belgidan iborat bo\'lishi kerak').max(50),
+  last_name: z.string().min(2, 'Familya kamida 2 ta belgidan iborat bo\'lishi kerak').max(50),
   username: z.string().min(3, 'Username kamida 3 ta belgidan iborat bo\'lishi kerak').max(30),
   password: z.string().min(6, 'Parol kamida 6 ta belgidan iborat bo\'lishi kerak').max(100),
   phone_number: z.string().regex(/^\+998\d{9}$/, 'Telefon raqami +998XXXXXXXXX formatida bo\'lishi kerak'),
@@ -48,8 +48,8 @@ export default function EditUserDialog({ user, open, onOpenChange, onSave }: Edi
   useEffect(() => {
     if (user) {
       form.reset({
-        surname: user.surname,
-        lastname: user.lastname,
+        first_name: user.first_name,
+        last_name: user.last_name,
         username: user.username,
         password: user.password,
         phone_number: user.phone_number,
@@ -86,18 +86,18 @@ export default function EditUserDialog({ user, open, onOpenChange, onSave }: Edi
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="edit-surname">Ism *</Label>
-              <Input id="edit-surname" {...form.register('surname')} />
-              {form.formState.errors.surname && (
-                <p className="text-sm text-destructive">{form.formState.errors.surname.message}</p>
+              <Label htmlFor="edit-first_name">Ism *</Label>
+              <Input id="edit-first_name" {...form.register('first_name')} />
+              {form.formState.errors.first_name && (
+                <p className="text-sm text-destructive">{form.formState.errors.first_name.message}</p>
               )}
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="edit-lastname">Familya *</Label>
-              <Input id="edit-lastname" {...form.register('lastname')} />
-              {form.formState.errors.lastname && (
-                <p className="text-sm text-destructive">{form.formState.errors.lastname.message}</p>
+              <Label htmlFor="edit-last_name">Familya *</Label>
+              <Input id="edit-last_name" {...form.register('last_name')} />
+              {form.formState.errors.last_name && (
+                <p className="text-sm text-destructive">{form.formState.errors.last_name.message}</p>
               )}
             </div>
 

@@ -1,24 +1,63 @@
-import { useState, FormEvent } from 'react';
+import { useState, useEffect, FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { authFetch } from '@/lib/authFetch';
+import { API_ENDPOINTS } from '@/config/api';
 import './Login.css';
 
 export default function Login() {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login, isLoading: authLoading, setUser } = useAuth();
   const { toast } = useToast();
-  const [username, setUsername] = useState('');
+  const [usernameOrPhone, setUsernameOrPhone] = useState('');
   const [password, setPassword] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [localLoading, setLocalLoading] = useState(false);
+
+  const isLoading = authLoading || localLoading;
+
+  // Check tokens and redirect if already logged in
+  useEffect(() => {
+    const accessToken = localStorage.getItem('access_token');
+    const refreshToken = localStorage.getItem('refresh_token');
+    if (accessToken && refreshToken) {
+      // Try to fetch user info
+      (async () => {
+        try {
+          const response = await authFetch(API_ENDPOINTS.USER_ME, { method: 'GET' });
+          if (response.ok) {
+            const user = await response.json();
+            setUser(user);
+            if (user.role === 'admin') {
+              navigate('/dashboard');
+            } else {
+              navigate('/dashboard');
+            }
+          }
+        } catch (err) {
+          // If error, stay on login page
+        }
+      })();
+    }
+  }, [navigate, setUser]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
+    
+    if (!usernameOrPhone.trim() || !password.trim()) {
+      toast({
+        title: 'Xato',
+        description: 'Username yoki parol maydonini to\'ldiring',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setLocalLoading(true);
 
     try {
-      const success = login(username, password);
-      if (success) {
+      const result = await login(usernameOrPhone, password);
+      if (result.success) {
         toast({
           title: 'Muvaffaqiyatli!',
           description: 'Tizimga kirdingiz',
@@ -27,18 +66,18 @@ export default function Login() {
       } else {
         toast({
           title: 'Xato',
-          description: 'Username yoki parol noto\'g\'ri',
+          description: result.error || 'Tizimga kirishda xatolik yuz berdi',
           variant: 'destructive',
         });
       }
     } catch (error) {
       toast({
         title: 'Xato',
-        description: 'Tizimga kirishda xatolik yuz berdi',
+        description: error instanceof Error ? error.message : 'Tizimga kirishda xatolik yuz berdi',
         variant: 'destructive',
       });
     } finally {
-      setIsLoading(false);
+      setLocalLoading(false);
     }
   };
 
@@ -60,18 +99,18 @@ export default function Login() {
         </div>
 
         <form className="login-form" onSubmit={handleSubmit}>
-          <label htmlFor="username">Username</label>
+          <label htmlFor="usernameOrPhone">Username yoki Telefon</label>
           <input
             type="text"
-            id="username"
-            placeholder="username"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
+            id="usernameOrPhone"
+            placeholder="username yoki telefon raqam"
+            value={usernameOrPhone}
+            onChange={(e) => setUsernameOrPhone(e.target.value)}
             required
             disabled={isLoading}
           />
 
-          <label htmlFor="password">Password</label>
+          <label htmlFor="password">Parol</label>
           <input
             type="password"
             id="password"

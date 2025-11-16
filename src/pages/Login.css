@@ -228,6 +228,87 @@
   transform: none;
 }
 
+/* Neon border for beginner */
+.level-bg-beginner {
+  box-shadow: 0 0 10px 0 #39ff14, 0 0 20px 0 #39ff14 inset;
+  border-radius: 20px;
+  animation: neonGreenGlow 1.5s infinite alternate;
+}
+
+@keyframes neonGreenGlow {
+  0% {
+    box-shadow: 0 0 10px 2px #39ff14, 0 0 20px 4px #39ff14 inset;
+  }
+  100% {
+    box-shadow: 0 0 20px 6px #39ff14, 0 0 40px 8px #39ff14 inset;
+  }
+}
+
+
+/* Neon border for intermediate */
+.level-bg-intermediate {
+  box-shadow: 0 0 10px 0px #d6a400, 0 0 25px 0px #d1a019 inset;
+  border-radius: 20px;
+  animation: neonYellowGlow 1s infinite alternate;
+}
+
+@keyframes neonYellowGlow {
+  0% {
+    box-shadow: 0 0 10px 2px #ffd000, 0 0 20px 4px #ffee00 inset;
+  }
+  100% {
+    box-shadow: 0 0 20px 6px #ffee00, 0 0 40px 8px #ffd900 inset;
+  }
+}
+/* Neon border for expert (multi-color) */
+.level-bg-expert {
+  box-shadow:
+    0 0 10px 2px #f7005f,
+    0 0 10px 2px #ac0022,
+    0 0 10px 2px #00b42d,
+    0 0 20px 3px #f7005f inset,
+    0 0 20px 3px #ac0022 inset,
+    0 0 20px 3px #00b42d inset;
+  border-radius: 20px;
+  animation: neonMultiGlow 1.2s infinite alternate;
+}
+
+@keyframes neonMultiGlow {
+  0% {
+    box-shadow:
+      0 0 10px 2px #f7005f,
+      0 0 10px 2px #ac0022,
+      0 0 10px 2px #00b42d,
+      0 0 20px 3px #f7005f inset,
+      0 0 20px 3px #ac0022 inset,
+      0 0 20px 3px #00b42d inset;
+  }
+  100% {
+    box-shadow:
+      0 0 20px 3px #f7005f,
+      0 0 20px 3px #ac0022,
+      0 0 20px 3px #00b42d,
+      0 0 40px 6px #f7005f inset,
+      0 0 40px 6px #ac0022 inset,
+      0 0 40px 6px #00b42d inset;
+  }
+}
+
+
+
+/* Make sure glass-card-bg overlays the color softly */
+.glass-card-bg {
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-radius: 20px;
+  color: #ffffff;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  position: relative;
+  z-index: 2;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
   .login-card {
