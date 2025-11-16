@@ -19,7 +19,7 @@ export default function ViewUserDialog({ user, open, onOpenChange }: ViewUserDia
       case 'intermediate':
         return 'O\'rta';
       case 'expert':
-      case 'advanced':
+      case 'expert':
         return 'Ekspert';
       default:
         return level;
@@ -33,7 +33,7 @@ export default function ViewUserDialog({ user, open, onOpenChange }: ViewUserDia
       case 'intermediate':
         return 'bg-yellow-500';
       case 'expert':
-      case 'advanced':
+      case 'expert':
         return 'bg-red-500';
       default:
         return 'bg-gray-500';

@@ -23,7 +23,7 @@ const userSchema = z.object({
   username: z.string().min(3, 'Username kamida 3 ta belgidan iborat bo\'lishi kerak').max(30),
   phone_number: z.string().min(1, 'Telefon raqam kiriting'),
   tg_username: z.string().max(50).optional(),
-  level: z.enum(['beginner', 'intermediate', 'advanced']),
+  level: z.enum(['beginner', 'intermediate', 'expert']),
   course: z.string().min(1),
   direction: z.string().min(2).max(100),
   coins: z.number().min(0, 'Tangalar 0 dan kam bo\'lmasligi kerak').optional(),
@@ -42,11 +42,12 @@ export default function EditUserDialog({ user, open, onOpenChange, onSave }: Edi
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
-  
+
   const form = useForm<UserFormData>({
     resolver: zodResolver(userSchema),
   });
 
+  // Backenddan kelgan ma'lumotlarni formga o'rnatish
   useEffect(() => {
     if (user) {
       form.reset({
@@ -55,8 +56,9 @@ export default function EditUserDialog({ user, open, onOpenChange, onSave }: Edi
         username: user.username,
         phone_number: user.phone_number,
         tg_username: user.tg_username || '',
-        level: (user.level || 'beginner') as 'beginner' | 'intermediate' | 'advanced',
-        course: user.course || '',
+        level: (user.level || 'beginner') as 'beginner' | 'intermediate' | 'expert',
+        // "kurs-1" -> "Kurs 1" frontend uchun
+        course: user.course ? user.course.replace(/^kurs-(\d+)$/, "Kurs $1") : '',
         direction: user.direction || '',
         coins: user.coins || 0,
       });
@@ -64,50 +66,67 @@ export default function EditUserDialog({ user, open, onOpenChange, onSave }: Edi
     }
   }, [user, form]);
 
+  // Backendga yuborish uchun "Kurs 2" -> "kurs-2"
+  const convertCourse = (value: string) => {
+    const match = value.match(/Kurs (\d+)/i);
+    return match ? `kurs-${match[1]}` : value.toLowerCase();
+  };
+
+  // Rasm preview URL
+  const photoPreviewUrl = photoFile
+    ? URL.createObjectURL(photoFile)
+    : user?.photo || null;
+
   const onSubmit = async (data: UserFormData) => {
     if (!user || isSubmitting) return;
-    
     setIsSubmitting(true);
+
     try {
       const formData = new FormData();
-      formData.append('surname', data.first_name);
-      formData.append('lastname', data.last_name);
-      formData.append('username', data.username);
-      formData.append('phone_number', data.phone_number);
-      formData.append('tg_username', data.tg_username || '');
-      formData.append('level', data.level);
-      formData.append('course', data.course);
-      formData.append('direction', data.direction);
-      
+
+      // Text maydonlar
+      formData.append("first_name", data.first_name);
+      formData.append("last_name", data.last_name);
+      formData.append("username", data.username);
+      formData.append("phone_number", data.phone_number);
+      formData.append("tg_username", data.tg_username || '');
+      formData.append("level", data.level);
+      formData.append("course", convertCourse(data.course));
+      formData.append("direction", data.direction);
+      formData.append("coins", data.coins);
+
+      // Rasm faylini qo‘shish (agar mavjud bo‘lsa)
       if (photoFile) {
-        formData.append('photo', photoFile);
+        formData.append("photo", photoFile);
       }
 
+      // So‘rov yuborish
       const response = await authFetch(`/users/users/${user.id}/`, {
-        method: 'PATCH',
-        headers: {},
-        body: formData,
+        method: "PATCH",
+        body: formData, // JSON emas
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || 'Foydalanuvchini yangilashda xatolik');
+        throw new Error(
+          errorData.message || errorData.detail || "Foydalanuvchini yangilashda xatolik"
+        );
       }
 
       const updatedUser = await response.json();
       onSave(user.id, updatedUser);
-      
+
       toast({
-        title: 'Muvaffaqiyatli',
-        description: 'Foydalanuvchi ma\'lumotlari yangilandi',
+        title: "Muvaffaqiyatli",
+        description: "Foydalanuvchi ma'lumotlari yangilandi",
       });
-      
+
       onOpenChange(false);
     } catch (error) {
       toast({
-        title: 'Xato',
-        description: error instanceof Error ? error.message : 'Foydalanuvchini yangilashda xatolik',
-        variant: 'destructive',
+        title: "Xato",
+        description: error instanceof Error ? error.message : "Foydalanuvchini yangilashda xatolik",
+        variant: "destructive",
       });
     } finally {
       setIsSubmitting(false);
@@ -165,15 +184,15 @@ export default function EditUserDialog({ user, open, onOpenChange, onSave }: Edi
               <Label htmlFor="edit-level">Level *</Label>
               <Select
                 value={form.watch('level')}
-                onValueChange={(value) => form.setValue('level', value as 'beginner' | 'intermediate' | 'advanced')}
+                onValueChange={(value) => form.setValue('level', value as 'beginner' | 'intermediate' | 'expert')}
               >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="beginner">Boshlang'ich (Yashil)</SelectItem>
-                  <SelectItem value="intermediate">O'rta (Sariq)</SelectItem>
-                  <SelectItem value="advanced">Yuksak (Qizil)</SelectItem>
+                  <SelectItem value="beginner">Beginner (Boshlang'ich)</SelectItem>
+                  <SelectItem value="intermediate">Intermediate (O'rta)</SelectItem>
+                  <SelectItem value="expert">Expert (Yuksak)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -218,15 +237,20 @@ export default function EditUserDialog({ user, open, onOpenChange, onSave }: Edi
                   }
                 }}
               />
+              {photoPreviewUrl && (
+                <img
+                  src={photoPreviewUrl}
+                  alt="Foydalanuvchi rasmi"
+                  className="mt-2 w-24 h-24 object-cover rounded"
+                />
+              )}
               {photoFile && (
                 <p className="text-sm text-muted-foreground">
                   Tanlangan: {photoFile.name}
                 </p>
               )}
             </div>
-            </div>
 
-            <div className="space-y-2">
             <div className="space-y-2">
               <Label htmlFor="edit-coins">Tangalar (Coins)</Label>
               <Input 

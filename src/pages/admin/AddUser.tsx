@@ -27,12 +27,12 @@ const userSchema = z.object({
   last_name: z.string().min(2, 'Familya kamida 2 ta belgidan iborat bo\'lishi kerak').max(50, 'Familya 50 ta belgidan oshmasligi kerak'),
   username: z.string().min(3, 'Username kamida 3 ta belgidan iborat bo\'lishi kerak').max(30, 'Username 30 ta belgidan oshmasligi kerak'),
   password: z.string().min(6, 'Parol kamida 6 ta belgidan iborat bo\'lishi kerak').max(100),
-  phone_number: z.string().min(1, 'Telefon raqam kiriting'),
+  phone_number: z.string().min(6, 'Telefon raqam kiriting'),
   tg_username: z.string().max(50).optional(),
-  level: z.enum(['beginner', 'intermediate', 'advanced'], { required_error: 'Level tanlang' }),
+  level: z.enum(['beginner', 'intermediate', 'expert'], { required_error: 'Level tanlang' }),
   course: z.string().min(1, 'Kurs tanlang'),
   direction: z.string().min(2, 'Yo\'nalish kamida 2 ta belgidan iborat bo\'lishi kerak').max(100),
-  uuid: z.string().regex(/^ITC\d{3}$/, 'UUID ITC + 3 raqam formatida bo\'lishi kerak (masalan: ITC003)'),
+  uuid: z.string().regex(/^ITC\d{3}$/, 'UUID Topilmadi)'),
 });
 
 type UserFormData = z.infer<typeof userSchema>;
@@ -75,8 +75,8 @@ export default function AddUser() {
     try {
       const formData = new FormData();
       formData.append('username', data.username);
-      formData.append('surname', data.first_name);
-      formData.append('lastname', data.last_name);
+      formData.append('first_name', data.first_name);
+      formData.append('last_name', data.last_name);
       formData.append('uuid', data.uuid);
       formData.append('phone_number', data.phone_number);
       formData.append('tg_username', data.tg_username || '');
@@ -89,7 +89,7 @@ export default function AddUser() {
         formData.append('photo', photoFile);
       }
 
-      const response = await authFetch(API_ENDPOINTS.USERS_LIST, {
+      const response = await authFetch(API_ENDPOINTS.ADD_USER, {
         method: 'POST',
         headers: {},
         body: formData,
@@ -97,14 +97,32 @@ export default function AddUser() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || 'Foydalanuvchi qo\'shishda xatolik');
+
+        // Field-level xatoliklarni toast qilamiz
+        Object.entries(errorData).forEach(([field, messages]) => {
+          if (Array.isArray(messages)) {
+            messages.forEach((msg) => {
+              toast({
+                title: `Xatolik: ${field}`,
+                description: msg as string,
+                variant: 'destructive',
+              });
+            });
+          }
+        });
+
+        // Xatolikdan keyin isSubmitting = false qilinadi
+        setIsSubmitting(false);
+        return; // throw qilmaymiz, shunda form yana ishlaydi
       }
 
       toast({
         title: 'Muvaffaqiyatli',
         description: 'Yangi foydalanuvchi qo\'shildi',
       });
+
       navigate('/dashboard/admin/users');
+
     } catch (error) {
       toast({
         title: 'Xato',
@@ -112,9 +130,10 @@ export default function AddUser() {
         variant: 'destructive',
       });
     } finally {
-      setIsSubmitting(false);
+      setIsSubmitting(false); // Xatolik bo‘lsa ham tugmani tiklaymiz
     }
   };
+
 
   if (user?.role !== 'admin') {
     return null;
@@ -178,9 +197,14 @@ export default function AddUser() {
                   <Label htmlFor="password">Parol *</Label>
                   <Input
                     id="password"
+                    type="password"
+                    {...form.register('password')}
+                    placeholder="Kamida 6 ta belgi"
                   />
                   {form.formState.errors.password && (
-                    <p className="text-sm text-destructive">{form.formState.errors.password.message}</p>
+                    <p className="text-sm text-destructive">
+                      {form.formState.errors.password.message}
+                    </p>
                   )}
                 </div>
 
@@ -212,7 +236,7 @@ export default function AddUser() {
                   <Label htmlFor="level">Level *</Label>
                   <Select
                     value={form.watch('level')}
-                    onValueChange={(value) => form.setValue('level', value as 'beginner' | 'intermediate' | 'advanced')}
+                    onValueChange={(value) => form.setValue('level', value as 'beginner' | 'intermediate' | 'expert')}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Level tanlang" />
@@ -220,7 +244,7 @@ export default function AddUser() {
                     <SelectContent>
                       <SelectItem value="beginner">Boshlang'ich (Yashil)</SelectItem>
                       <SelectItem value="intermediate">O'rta (Sariq)</SelectItem>
-                      <SelectItem value="advanced">Yuksak (Qizil)</SelectItem>
+                      <SelectItem value="expert">Yuksak (Qizil)</SelectItem>
                     </SelectContent>
                   </Select>
                   {form.formState.errors.level && (
@@ -238,11 +262,11 @@ export default function AddUser() {
                       <SelectValue placeholder="Kurs tanlang" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Kurs 1">Kurs 1</SelectItem>
-                      <SelectItem value="Kurs 2">Kurs 2</SelectItem>
-                      <SelectItem value="Kurs 3">Kurs 3</SelectItem>
-                      <SelectItem value="Kurs 4">Kurs 4</SelectItem>
-                      <SelectItem value="Kurs 5">Kurs 5</SelectItem>
+                      <SelectItem value="kurs-1">Kurs 1</SelectItem>
+                      <SelectItem value="kurs-2">Kurs 2</SelectItem>
+                      <SelectItem value="kurs-3">Kurs 3</SelectItem>
+                      <SelectItem value="kurs-4">Kurs 4</SelectItem>
+                      <SelectItem value="kurs-5">Kurs 5</SelectItem>
                     </SelectContent>
                   </Select>
                   {form.formState.errors.course && (

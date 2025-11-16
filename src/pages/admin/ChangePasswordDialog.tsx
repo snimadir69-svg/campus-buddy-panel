@@ -45,6 +45,7 @@ export default function ChangePasswordDialog({ userId, userName, open, onOpenCha
         method: 'POST',
         body: JSON.stringify({
           new_password: data.new_password,
+          confirm_password: data.confirm_password,
         }),
       });
 

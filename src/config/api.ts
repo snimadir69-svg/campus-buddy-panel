@@ -11,6 +11,8 @@ export const API_ENDPOINTS = {
   USER_PROFILE: '/users/profile/',
   CHANGE_PASSWORD: '/users/change_password/',
   USERS_LIST: '/users/users/',
+  ADD_USER: '/users/add/',
+
   
   // Statistics
   STATISTICS: '/users/statistics/',

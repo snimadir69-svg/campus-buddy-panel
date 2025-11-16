@@ -50,7 +50,7 @@ export default function UserManagement() {
   const [isLoading, setIsLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
-  const itemsPerPage = 30;
+  const itemsPerPage = 20; // har sahifadagi foydalanuvchilar soni
   const totalPages = Math.ceil(totalCount / itemsPerPage);
 
   useEffect(() => {
@@ -60,27 +60,22 @@ export default function UserManagement() {
   const fetchUsers = async (page: number) => {
     setIsLoading(true);
     try {
-      const offset = (page - 1) * itemsPerPage;
-      const response = await authFetch(
-        `${API_ENDPOINTS.USERS_LIST}?limit=${itemsPerPage}&offset=${offset}`,
-        { method: 'GET' }
-      );
+      const url = page === 1
+        ? `${API_ENDPOINTS.USERS_LIST}` // page 1 uchun ?page param qo'shilmaydi
+        : `${API_ENDPOINTS.USERS_LIST}?page=${page}`;
+        
+      const response = await authFetch(url, { method: 'GET' });
 
       if (!response.ok) {
         throw new Error('Foydalanuvchilarni yuklashda xatolik');
       }
 
       const data: UsersResponse = await response.json();
-      console.log('Fetched users:', data); // Debug log
-      
-      // Show all users, or filter by role if needed
       const filteredUsers = data.results.filter(u => u.role === 'student');
-      console.log('Filtered users:', filteredUsers); // Debug log
-      
       setUsers(filteredUsers.length > 0 ? filteredUsers : data.results);
       setTotalCount(data.count);
+
     } catch (error) {
-      console.error('Fetch error:', error); // Debug log
       toast({
         title: 'Xato',
         description: error instanceof Error ? error.message : 'Foydalanuvchilarni yuklashda xatolik',
@@ -91,9 +86,7 @@ export default function UserManagement() {
     }
   };
 
-  const handleEdit = (userToEdit: User) => {
-    setEditingUser(userToEdit);
-  };
+  const handleEdit = (userToEdit: User) => setEditingUser(userToEdit);
 
   const handleSave = (id: string, data: Partial<User>) => {
     updateUser(id, data);
@@ -104,37 +97,29 @@ export default function UserManagement() {
     });
   };
 
-  const handleDelete = () => {
-    if (deletingUserId) {
-      deleteUser(deletingUserId);
-      setUsers(users.filter(u => u.id !== deletingUserId));
-      toast({
-        title: 'O\'chirildi',
-        description: 'Foydalanuvchi o\'chirildi',
-      });
-      setDeletingUserId(null);
-    }
-  };
-
   const handleToggleActive = async (userId: string, currentStatus: boolean) => {
     try {
+      const formData = new FormData();
+      formData.append("is_active", (!currentStatus).toString()); // booleanni stringga o‘tkazamiz
+
       const response = await authFetch(`/users/users/${userId}/`, {
         method: 'PATCH',
-        body: JSON.stringify({
-          is_active: !currentStatus,
-        }),
+        body: formData, // JSON o‘rniga FormData yuboramiz
       });
 
       if (!response.ok) {
         throw new Error('Holatni o\'zgartirishda xatolik');
       }
 
+      // State-dagi foydalanuvchini yangilash
       setUsers(users.map(u => u.id === userId ? { ...u, is_active: !currentStatus } : u));
+
       toast({
         title: 'Muvaffaqiyatli',
         description: !currentStatus ? 'Foydalanuvchi faollashtirildi' : 'Foydalanuvchi bloklandi',
       });
-      fetchUsers(currentPage);
+
+      fetchUsers(currentPage); // optional, sahifani yangilash
     } catch (error) {
       toast({
         title: 'Xato',
@@ -144,35 +129,56 @@ export default function UserManagement() {
     }
   };
 
+  const handleDelete = async () => {
+    if (!deletingUserId) return;
+
+    try {
+      const response = await authFetch(`/users/users/${deletingUserId}/`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error('Foydalanuvchini o‘chirishda xatolik');
+      }
+
+      // State-dan o'chirish
+      setUsers(users.filter(u => u.id !== deletingUserId));
+
+      toast({
+        title: 'O‘chirildi',
+        description: 'Foydalanuvchi muvaffaqiyatli o‘chirildi',
+      });
+
+      setDeletingUserId(null);
+    } catch (error) {
+      toast({
+        title: 'Xato',
+        description: error instanceof Error ? error.message : 'Foydalanuvchini o‘chirishda xatolik',
+        variant: 'destructive',
+      });
+    }
+  };
+
+
   const getLevelColor = (level?: string) => {
     switch (level) {
-      case 'beginner':
-        return 'bg-green-500';
-      case 'intermediate':
-        return 'bg-yellow-500';
-      case 'expert':
-        return 'bg-red-500';
-      default:
-        return 'bg-gray-500';
+      case 'beginner': return 'bg-green-500';
+      case 'intermediate': return 'bg-yellow-500';
+      case 'expert': return 'bg-red-500';
+      default: return 'bg-gray-500';
     }
   };
 
   const getLevelText = (level?: string) => {
     switch (level) {
-      case 'beginner':
-        return 'Boshlang\'ich';
-      case 'intermediate':
-        return 'O\'rta';
-      case 'expert':
-        return 'Ekspert';
-      default:
-        return level;
+      case 'beginner': return 'Boshlang\'ich';
+      case 'intermediate': return 'O\'rta';
+      case 'expert': return 'Ekspert';
+      default: return level;
     }
   };
 
-  if (user?.role !== 'admin') {
-    return null;
-  }
+  if (user?.role !== 'admin') return null;
 
   return (
     <DashboardLayout>
@@ -211,18 +217,17 @@ export default function UserManagement() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {users.map((student) => (
+                    {users.map((student, index) => (
                       <TableRow key={student.id}>
-                        <TableCell className="font-medium">
-                          {student.first_name} {student.last_name}
-                        </TableCell>
+                        {/* Tartib raqami */}
+                        <TableCell className="font-medium">{(currentPage - 1) * itemsPerPage + index + 1}</TableCell>
+
+                        <TableCell className="font-medium">{student.first_name} {student.last_name}</TableCell>
                         <TableCell>{student.username}</TableCell>
                         <TableCell>{student.phone_number}</TableCell>
                         <TableCell>{student.course}</TableCell>
                         <TableCell>
-                          <Badge className={getLevelColor(student.level)}>
-                            {getLevelText(student.level)}
-                          </Badge>
+                          <Badge className={getLevelColor(student.level)}>{getLevelText(student.level)}</Badge>
                         </TableCell>
                         <TableCell>{student.direction}</TableCell>
                         <TableCell>
@@ -260,11 +265,7 @@ export default function UserManagement() {
                           <Button variant="ghost" size="icon" onClick={() => handleEdit(student)}>
                             <Pencil className="h-4 w-4" />
                           </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="icon"
-                            onClick={() => setDeletingUserId(student.id)}
-                          >
+                          <Button variant="ghost" size="icon" onClick={() => setDeletingUserId(student.id)}>
                             <Trash2 className="h-4 w-4 text-destructive" />
                           </Button>
                         </TableCell>
